@@ -4,6 +4,7 @@ import { PLAYER_1, PLAYER_2 } from "./constants.js";
 
 const activeGames = new Map();
 
+
 export function createGame(p1, p2, ws1, ws2) {
   const gameId = uuid();
 
@@ -17,6 +18,10 @@ export function createGame(p1, p2, ws1, ws2) {
     sockets: {
       p1: ws1,
       p2: ws2
+    },
+    disconnectTimers: {
+      p1: null,
+      p2: null
     },
     turn: PLAYER_1,
     status: "ACTIVE",
@@ -38,6 +43,7 @@ export function createGame(p1, p2, ws1, ws2) {
   return game;
 }
 
+
 export function getGame(gameId) {
   return activeGames.get(gameId);
 }
@@ -46,16 +52,17 @@ export function removeGame(gameId) {
   activeGames.delete(gameId);
 }
 
-export function makeMove(game, player, column){
-  if(game.status !== "ACTIVE") return null;
-  if(game.turn !== player) return null;
+
+export function makeMove(game, player, column) {
+  if (game.status !== "ACTIVE") return null;
+  if (game.turn !== player) return null;
 
   const row = dropDisc(game.board, column, player);
-  if(row === -1) return null;
+  if (row === -1) return null;
 
-  if(checkWin(game.board, player)){
+  if (checkWin(game.board, player)) {
     game.status = "FINISHED";
-    return{
+    return {
       type: "WIN",
       winner: player,
       row,
@@ -63,9 +70,9 @@ export function makeMove(game, player, column){
     };
   }
 
-  if(isDraw(game.board)){
+  if (isDraw(game.board)) {
     game.status = "FINISHED";
-    return{
+    return {
       type: "DRAW"
     };
   }
@@ -77,4 +84,37 @@ export function makeMove(game, player, column){
     row,
     column
   };
+}
+
+
+export function handleDisconnect(game, playerKey) {
+  if (game.status !== "ACTIVE") return;
+
+  game.disconnectTimers[playerKey] = setTimeout(() => {
+    game.status = "FINISHED";
+
+    const winner =
+      playerKey === "p1" ? PLAYER_2 : PLAYER_1;
+
+    removeGame(game.id);
+  }, 30_000);
+}
+
+
+export function handleReconnect(game, playerKey, ws) {
+  if (game.disconnectTimers[playerKey]) {
+    clearTimeout(game.disconnectTimers[playerKey]);
+    game.disconnectTimers[playerKey] = null;
+  }
+
+  game.sockets[playerKey] = ws;
+
+  ws.send(JSON.stringify({
+    type: "GAME_RESUME",
+    payload: {
+      gameId: game.id,
+      board: game.board,
+      turn: game.turn
+    }
+  }));
 }

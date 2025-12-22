@@ -1,18 +1,19 @@
 import { WebSocketServer } from "ws";
 import { v4 as uuid } from "uuid";
-import { joinQueue } from "./matchmaking/queue";
-import { getGame, removeGame, makeMove } from "./game/gameManner.js";
+
+import { joinQueue } from "./matchmaking/queue.js";
+import {
+  getGame,
+  removeGame,
+  makeMove,
+  handleDisconnect,
+  handleReconnect
+} from "./game/gameManner.js";
 import { botMove } from "./game/botEngine.js";
 import { PLAYER_2 } from "./game/constants.js";
 
-
-const clients = new Map();
-
-function broadcast(game, message){
-  Object.values(game.sockets).forEach(s => {
-    ws?.send(JSON.stringify(message));
-  });
-}
+const clients = new Map();          
+const socketToGame = new Map();     
 
 export function initWebSocket(server) {
   const wss = new WebSocketServer({
@@ -22,6 +23,8 @@ export function initWebSocket(server) {
 
   wss.on("connection", (ws) => {
     const socketId = uuid();
+    ws.socketId = socketId;
+
     clients.set(socketId, ws);
 
     ws.send(JSON.stringify({
@@ -42,19 +45,32 @@ export function initWebSocket(server) {
     });
 
     ws.on("close", () => {
-      clients.delete(socketId);
+      const meta = socketToGame.get(socketId);
+      if (!meta) return;
+
+      const { gameId, playerKey } = meta;
+      const game = getGame(gameId);
+      if (!game) return;
+
+      handleDisconnect(game, playerKey);
     });
   });
 }
 
+
 function handleMessage(ws, socketId, msg) {
   switch (msg.type) {
+
     case "JOIN_QUEUE":
       joinQueue(msg.username, ws);
       break;
 
     case "DROP_DISC":
-      handleDropDisc(ws, msg);
+      handleDropDisc(msg);
+      break;
+
+    case "RECONNECT":
+      handleReconnectMessage(ws, socketId, msg);
       break;
 
     default:
@@ -66,7 +82,7 @@ function handleMessage(ws, socketId, msg) {
 }
 
 
-function handleDropDisc(ws, msg) {
+function handleDropDisc(msg) {
   const { gameId, column, player } = msg;
 
   const game = getGame(gameId);
@@ -112,4 +128,29 @@ function handleDropDisc(ws, msg) {
       removeGame(gameId);
     }
   }
+}
+
+
+function handleReconnectMessage(ws, socketId, msg) {
+  const { gameId, username } = msg;
+
+  const game = getGame(gameId);
+  if (!game) return;
+
+  const playerKey =
+    game.players.p1 === username ? "p1" :
+    game.players.p2 === username ? "p2" :
+    null;
+
+  if (!playerKey) return;
+
+  socketToGame.set(socketId, { gameId, playerKey });
+  handleReconnect(game, playerKey, ws);
+}
+
+
+function broadcast(game, message) {
+  Object.values(game.sockets).forEach(ws => {
+    ws?.send(JSON.stringify(message));
+  });
 }
