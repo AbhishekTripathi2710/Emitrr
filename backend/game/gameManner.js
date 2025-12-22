@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { createBoard } from "./gameLogic.js";
+import { createBoard, dropDisc, isDraw, checkWin } from "./gameLogic.js";
 import { PLAYER_1, PLAYER_2 } from "./constants.js";
 
 const activeGames = new Map();
@@ -44,4 +44,37 @@ export function getGame(gameId) {
 
 export function removeGame(gameId) {
   activeGames.delete(gameId);
+}
+
+export function makeMove(game, player, column){
+  if(game.status !== "ACTIVE") return null;
+  if(game.turn !== player) return null;
+
+  const row = dropDisc(game.board, column, player);
+  if(row === -1) return null;
+
+  if(checkWin(game.board, player)){
+    game.status = "FINISHED";
+    return{
+      type: "WIN",
+      winner: player,
+      row,
+      column
+    };
+  }
+
+  if(isDraw(game.board)){
+    game.status = "FINISHED";
+    return{
+      type: "DRAW"
+    };
+  }
+
+  game.turn = player === PLAYER_1 ? PLAYER_2 : PLAYER_1;
+
+  return {
+    type: "MOVE",
+    row,
+    column
+  };
 }
