@@ -1,5 +1,6 @@
 import { WebSocketServer } from "ws";
 import { v4 as uuid } from "uuid";
+import { joinQueue } from "./matchmaking/queue";
 
 const clients = new Map();
 
@@ -39,6 +40,7 @@ export function initWebSocket(server) {
 function handleMessage(ws, socketId, msg) {
   switch (msg.type) {
     case "JOIN_QUEUE":
+      joinQueue(msg.username, ws);
       break;
 
     case "DROP_DISC":
