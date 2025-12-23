@@ -87,16 +87,18 @@ export function makeMove(game, player, column) {
 }
 
 
-export function handleDisconnect(game, playerKey) {
+export function handleDisconnect(game, playerKey, onTimeout) {
   if (game.status !== "ACTIVE") return;
 
   game.disconnectTimers[playerKey] = setTimeout(() => {
     game.status = "FINISHED";
 
-    const winner =
-      playerKey === "p1" ? PLAYER_2 : PLAYER_1;
-
-    removeGame(game.id);
+    const winner = playerKey === "p1" ? PLAYER_2 : PLAYER_1;
+    if (onTimeout) {
+      onTimeout(winner);
+    } else {
+      removeGame(game.id);
+    }
   }, 30_000);
 }
 

@@ -60,7 +60,12 @@ export function initWebSocket(server) {
       const game = getGame(gameId);
       if (!game) return;
 
-      handleDisconnect(game, playerKey);
+      handleDisconnect(game, playerKey, async (winner) => {
+        await persistAndCloseGame(game, {
+          type: "WIN",
+          winner
+        });
+      });
     });
   });
 }
@@ -69,7 +74,7 @@ export function initWebSocket(server) {
 async function handleMessage(ws, socketId, msg) {
   switch (msg.type) {
     case "JOIN_QUEUE":
-      joinQueue(msg.username, ws, msg.mode, socketId);
+      joinQueue(msg.username, ws, msg.mode, socketId, mapSocketToGame);
       break;
 
     case "DROP_DISC":
@@ -147,6 +152,9 @@ function handleReconnectMessage(ws, socketId, msg) {
   handleReconnect(game, playerKey, ws);
 }
 
+function mapSocketToGame(socketId, gameId, playerKey) {
+  socketToGame.set(socketId, { gameId, playerKey });
+}
 
 async function persistAndCloseGame(game, result) {
   broadcast(game, {

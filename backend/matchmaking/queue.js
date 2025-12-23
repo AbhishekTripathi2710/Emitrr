@@ -4,9 +4,10 @@ import { createGame } from "../game/gameManner.js";
 const queue = [];
 const BOT_WAIT_TIME = 10_000;
 
-export function joinQueue(username, ws, mode, socketId) {
+export function joinQueue(username, ws, mode, socketId, onMatch) {
     if (mode === "BOT") {
-    createGame(username, "BOT", ws, null);
+    const game = createGame(username, "BOT", ws, null);
+    onMatch?.(socketId, game.id, "p1");
     return;
   }
 
@@ -14,11 +15,15 @@ export function joinQueue(username, ws, mode, socketId) {
     const opponent = queue.shift();
     clearTimeout(opponent.timer);
 
-    return createGame(opponent.username, username, opponent.ws, ws);
+    const game = createGame(opponent.username, username, opponent.ws, ws);
+    onMatch?.(opponent.socketId, game.id, "p1");
+    onMatch?.(socketId, game.id, "p2");
+    return game;
   }
 
   const timer = setTimeout(() => {
-    createGame(username, "BOT", ws, null);
+    const game = createGame(username, "BOT", ws, null);
+    onMatch?.(socketId, game.id, "p1");
   }, BOT_WAIT_TIME);
 
   queue.push({ username, ws, timer, socketId });
