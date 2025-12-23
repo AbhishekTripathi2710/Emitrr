@@ -16,7 +16,7 @@ import {
   getOrCreateUser,
   saveGame,
   incrementWin
-} from "./db/queries.js";
+} from "./db/schema.js";
 
 const clients = new Map();       
 const socketToGame = new Map();     
@@ -67,7 +67,7 @@ export function initWebSocket(server) {
 async function handleMessage(ws, socketId, msg) {
   switch (msg.type) {
     case "JOIN_QUEUE":
-      joinQueue(msg.username, ws);
+      joinQueue(msg.username, ws, msg.mode);
       break;
 
     case "DROP_DISC":

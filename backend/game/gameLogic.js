@@ -1,4 +1,4 @@
-import { ROWS, COLS, EMPTY } from "./constants";
+import { ROWS, COLS, EMPTY } from "./constants.js";
 
 export function createBoard(){
     return Array.from({length: ROWS}, () => 

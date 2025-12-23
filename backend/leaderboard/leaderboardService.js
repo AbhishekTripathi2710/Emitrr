@@ -1,5 +1,5 @@
 import express from "express";
-import { getLeaderboard } from "../db/schema";
+import { getLeaderboard } from "../db/schema.js";
 
 const router = express.Router();
 

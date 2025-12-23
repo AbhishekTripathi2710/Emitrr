@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "./mysql.js";
 
 export async function getOrCreateUser(username) {
     const [rows] = await db.query(
