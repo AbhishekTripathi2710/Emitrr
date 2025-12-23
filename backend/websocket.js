@@ -10,9 +10,15 @@ import {
   handleReconnect
 } from "./game/gameManner.js";
 import { botMove } from "./game/botEngine.js";
-import { PLAYER_2 } from "./game/constants.js";
+import { PLAYER_1, PLAYER_2 } from "./game/constants.js";
 
-const clients = new Map();          
+import {
+  getOrCreateUser,
+  saveGame,
+  incrementWin
+} from "./db/queries.js";
+
+const clients = new Map();       
 const socketToGame = new Map();     
 
 export function initWebSocket(server) {
@@ -32,11 +38,11 @@ export function initWebSocket(server) {
       payload: { socketId }
     }));
 
-    ws.on("message", (data) => {
+    ws.on("message", async (data) => {
       try {
         const msg = JSON.parse(data.toString());
-        handleMessage(ws, socketId, msg);
-      } catch {
+        await handleMessage(ws, socketId, msg);
+      } catch (err) {
         ws.send(JSON.stringify({
           type: "ERROR",
           message: "Invalid JSON"
@@ -58,15 +64,14 @@ export function initWebSocket(server) {
 }
 
 
-function handleMessage(ws, socketId, msg) {
+async function handleMessage(ws, socketId, msg) {
   switch (msg.type) {
-
     case "JOIN_QUEUE":
       joinQueue(msg.username, ws);
       break;
 
     case "DROP_DISC":
-      handleDropDisc(msg);
+      await handleDropDisc(msg);
       break;
 
     case "RECONNECT":
@@ -82,7 +87,7 @@ function handleMessage(ws, socketId, msg) {
 }
 
 
-function handleDropDisc(msg) {
+async function handleDropDisc(msg) {
   const { gameId, column, player } = msg;
 
   const game = getGame(gameId);
@@ -100,11 +105,7 @@ function handleDropDisc(msg) {
   });
 
   if (result.type === "WIN" || result.type === "DRAW") {
-    broadcast(game, {
-      type: "GAME_OVER",
-      payload: result
-    });
-    removeGame(gameId);
+    await persistAndCloseGame(game, result);
     return;
   }
 
@@ -121,11 +122,7 @@ function handleDropDisc(msg) {
     });
 
     if (botResult.type === "WIN" || botResult.type === "DRAW") {
-      broadcast(game, {
-        type: "GAME_OVER",
-        payload: botResult
-      });
-      removeGame(gameId);
+      await persistAndCloseGame(game, botResult);
     }
   }
 }
@@ -146,6 +143,40 @@ function handleReconnectMessage(ws, socketId, msg) {
 
   socketToGame.set(socketId, { gameId, playerKey });
   handleReconnect(game, playerKey, ws);
+}
+
+
+async function persistAndCloseGame(game, result) {
+  broadcast(game, {
+    type: "GAME_OVER",
+    payload: result
+  });
+
+  const duration = Math.floor((Date.now() - game.createdAt) / 1000);
+
+  const p1Id = await getOrCreateUser(game.players.p1);
+  const p2Id =
+    game.players.p2 === "BOT"
+      ? null
+      : await getOrCreateUser(game.players.p2);
+
+  let winnerId = null;
+
+  if (result.type === "WIN") {
+    winnerId = result.winner === PLAYER_1 ? p1Id : p2Id;
+    if (winnerId) await incrementWin(winnerId);
+  }
+
+  await saveGame({
+    gameId: game.id,
+    p1: p1Id,
+    p2: p2Id,
+    winner: winnerId,
+    result: result.type,
+    duration
+  });
+
+  removeGame(game.id);
 }
 
 
