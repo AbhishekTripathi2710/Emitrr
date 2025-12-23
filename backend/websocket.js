@@ -1,7 +1,7 @@
 import { WebSocketServer } from "ws";
 import { v4 as uuid } from "uuid";
 
-import { joinQueue } from "./matchmaking/queue.js";
+import { joinQueue, removeFromQueue } from "./matchmaking/queue.js";
 import {
   getGame,
   removeGame,
@@ -51,6 +51,8 @@ export function initWebSocket(server) {
     });
 
     ws.on("close", () => {
+      removeFromQueue(socketId);
+
       const meta = socketToGame.get(socketId);
       if (!meta) return;
 
@@ -67,7 +69,7 @@ export function initWebSocket(server) {
 async function handleMessage(ws, socketId, msg) {
   switch (msg.type) {
     case "JOIN_QUEUE":
-      joinQueue(msg.username, ws, msg.mode);
+      joinQueue(msg.username, ws, msg.mode, socketId);
       break;
 
     case "DROP_DISC":

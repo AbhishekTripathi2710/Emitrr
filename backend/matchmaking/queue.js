@@ -4,7 +4,7 @@ import { createGame } from "../game/gameManner.js";
 const queue = [];
 const BOT_WAIT_TIME = 10_000;
 
-export function joinQueue(username, ws, mode) {
+export function joinQueue(username, ws, mode, socketId) {
     if (mode === "BOT") {
     createGame(username, "BOT", ws, null);
     return;
@@ -21,7 +21,7 @@ export function joinQueue(username, ws, mode) {
     createGame(username, "BOT", ws, null);
   }, BOT_WAIT_TIME);
 
-  queue.push({ username, ws, timer });
+  queue.push({ username, ws, timer, socketId });
 }
 
 function startBotGame(username, ws) {
@@ -30,4 +30,12 @@ function startBotGame(username, ws) {
 
   queue.splice(index, 1);
   createGame(username, "BOT", ws, null);
+}
+
+export function removeFromQueue(socketId) {
+  const index = queue.findIndex(p => p.socketId === socketId);
+  if (index === -1) return;
+
+  clearTimeout(queue[index].timer);
+  queue.splice(index, 1);
 }

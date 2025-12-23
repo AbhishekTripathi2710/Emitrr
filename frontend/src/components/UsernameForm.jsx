@@ -1,17 +1,17 @@
+import { useState } from "react";
+
 export default function UsernameForm({ onSubmit }) {
-  let username = "";
+  const [username, setUsername] = useState("");
 
   return (
-    <div className="flex gap-2 mb-6">
+    <div className="username-form">
       <input
-        className="border px-3 py-2 rounded w-64"
+        className="text-input"
         placeholder="Enter username"
-        onChange={(e) => (username = e.target.value)}
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
       />
-      <button
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-        onClick={() => onSubmit(username)}
-      >
+      <button className="action-btn primary" onClick={() => onSubmit(username)}>
         Play
       </button>
     </div>

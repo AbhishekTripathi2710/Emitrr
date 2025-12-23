@@ -4,6 +4,7 @@ import UsernameForm from "./components/UsernameForm";
 import Board from "./components/Board";
 import Leaderboard from "./components/LeaderBoard";
 import ModeSelector from "./components/ModeSelector";
+import "./App.css";
 
 export default function App() {
   const [username, setUsername] = useState(null);
@@ -25,7 +26,8 @@ export default function App() {
 
         setGame({
           id: msg.payload.gameId,
-          board: Array.from({ length: 6 }, () => Array(7).fill(0))
+          board: Array.from({ length: 6 }, () => Array(7).fill(0)),
+          opponent: msg.payload.opponent
         });
         setPlayer(msg.payload.player);
       }
@@ -68,13 +70,67 @@ export default function App() {
     });
   }
 
+  const playerLabel = username || "You";
+  const opponentLabel =
+    game?.opponent === "BOT" ? "Bot" : game?.opponent || "Opponent";
+  const playerColor = player === 1 ? "Coral" : player === 2 ? "Teal" : "Player";
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      {!mode && <ModeSelector onSelect={setMode} />}
-      {mode && !username && <UsernameForm onSubmit={(u) => startGame(u, mode)} />}
-      {status && <p className="mb-4">{status}</p>}
-      {game && <Board board={game.board} onDrop={drop} />}
-      <Leaderboard />
+    <div className="app-shell">
+      <header className="header">
+        <div className="brand">
+          <span className="brand-dot" />
+          <span>Connect Four</span>
+        </div>
+        {game && (
+          <div className="player-stack">
+            <div className="player-chip">
+              <span className="chip-dot coral" />
+              <div className="chip-text">
+                <span className="chip-label">You</span>
+                <span className="chip-name">{playerLabel}</span>
+                <span className="chip-meta">{playerColor}</span>
+              </div>
+            </div>
+            <div className="player-chip">
+              <span className="chip-dot teal" />
+              <div className="chip-text">
+                <span className="chip-label">Opponent</span>
+                <span className="chip-name">{opponentLabel}</span>
+                <span className="chip-meta">Teal/Coral</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
+
+      <div className="content-grid">
+        <div className="board-card">
+          {game ? (
+            <Board board={game.board} onDrop={drop} />
+          ) : (
+            <div className="board-placeholder">
+              Choose a mode and enter a username to start.
+            </div>
+          )}
+        </div>
+
+        <div className="side-stack">
+          <div className="control-card">
+            <div>
+              <p className="eyebrow">Start a match</p>
+              <h2 className="section-title">Game setup</h2>
+            </div>
+            {!mode && <ModeSelector onSelect={setMode} />}
+            {mode && !username && (
+              <UsernameForm onSubmit={(u) => startGame(u, mode)} />
+            )}
+            {status && <div className="status-chip">{status}</div>}
+          </div>
+
+          <Leaderboard />
+        </div>
+      </div>
     </div>
   );
 }
