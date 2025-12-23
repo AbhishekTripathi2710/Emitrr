@@ -14,7 +14,7 @@ export async function getOrCreateUser(username) {
     );
 
     await db.query(
-        "INSERT INTO leadboard (user_id, wins) VALUES (?, 0)",
+        "INSERT INTO leaderboard (user_id, wins) VALUES (?, 0)",
         [result.insertId]
     );
 
