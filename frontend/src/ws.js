@@ -5,21 +5,45 @@ const getWebSocketUrl = () => {
     if (wsUrl) return wsUrl;
     
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = import.meta.env.VITE_API_URL || window.location.host;
+    const apiUrl = import.meta.env.VITE_API_URL;
+    
+    if (apiUrl) {
+        return `${protocol}//${apiUrl}/ws`;
+    }
+    
+    if (import.meta.env.DEV) {
+        return "ws://localhost:3000/ws";
+    }
+    
+    const host = window.location.host;
     return `${protocol}//${host}/ws`;
 };
 
 export function connect(onMessage){
-    socket = new WebSocket(getWebSocketUrl());
+    const wsUrl = getWebSocketUrl();
+    console.log("Connecting to WebSocket:", wsUrl);
+    socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
         console.log("WS connected");
     };
 
+    socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = (event) => {
+        console.log("WebSocket closed:", event.code, event.reason);
+    };
+
     socket.onmessage = (event) => {
         console.log("WS message:", event.data);
-        const msg = JSON.parse(event.data);
-        onMessage(msg);
+        try {
+            const msg = JSON.parse(event.data);
+            onMessage(msg);
+        } catch (err) {
+            console.error("Failed to parse WebSocket message:", err);
+        }
     }
 }
 
