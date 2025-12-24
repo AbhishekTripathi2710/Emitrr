@@ -3,9 +3,11 @@ import { Kafka } from "kafkajs";
 let producer;
 let enabled = false;
 
+const kafkaBroker = process.env.KAFKA_BROKER || "localhost:9092";
+
 const kafka = new Kafka({
     clientId: "game-server",
-    brokers: ["localhost:9092"]
+    brokers: [kafkaBroker]
 });
 
 export async function initProducer(){

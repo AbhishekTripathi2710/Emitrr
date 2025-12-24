@@ -1,7 +1,16 @@
 let socket;
 
+const getWebSocketUrl = () => {
+    const wsUrl = import.meta.env.VITE_WS_URL;
+    if (wsUrl) return wsUrl;
+    
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = import.meta.env.VITE_API_URL || window.location.host;
+    return `${protocol}//${host}/ws`;
+};
+
 export function connect(onMessage){
-    socket = new WebSocket("ws://localhost:3000/ws");
+    socket = new WebSocket(getWebSocketUrl());
 
     socket.onopen = () => {
         console.log("WS connected");
