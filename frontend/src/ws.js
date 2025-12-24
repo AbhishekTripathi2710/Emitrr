@@ -2,7 +2,12 @@ let socket;
 
 const getWebSocketUrl = () => {
     const wsUrl = import.meta.env.VITE_WS_URL;
-    if (wsUrl) return wsUrl;
+    if (wsUrl) {
+        if (wsUrl.endsWith("/ws")) {
+            return wsUrl;
+        }
+        return wsUrl.endsWith("/") ? `${wsUrl}ws` : `${wsUrl}/ws`;
+    }
     
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const apiUrl = import.meta.env.VITE_API_URL;
