@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "analytics": "node analytics/event.js"
   },
   "type": "module",
   "keywords": [],
@@ -15,6 +16,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "kafkajs": "^2.2.4",
     "nodemon": "^3.1.11",
     "uuid": "^13.0.0",
     "ws": "^8.18.3"

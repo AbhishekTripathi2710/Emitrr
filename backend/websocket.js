@@ -11,6 +11,7 @@ import {
 } from "./game/gameManner.js";
 import { botMove } from "./game/botEngine.js";
 import { PLAYER_1, PLAYER_2 } from "./game/constants.js";
+import { emitGameCompleted } from "./analytics/producer.js";
 
 import {
   getOrCreateUser,
@@ -184,6 +185,19 @@ async function persistAndCloseGame(game, result) {
     winner: winnerId,
     result: result.type,
     duration
+  });
+
+  await emitGameCompleted({
+    event: "GAME_COMPLETED",
+    gameId: game.id,
+    players: game.players,
+    winner:
+      result.type === "WIN"
+        ? (result.winner === PLAYER_1 ? game.players.p1 : game.players.p2)
+        : null,
+    result: result.type,
+    duration,
+    timestamp: Date.now()
   });
 
   removeGame(game.id);
