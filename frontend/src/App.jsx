@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { connect, send } from "./ws";
+import { connect, send, getConnectionState, onConnectionStateChange, isConnected } from "./ws";
 import UsernameForm from "./components/UsernameForm";
 import Board from "./components/Board";
 import Leaderboard from "./components/LeaderBoard";
@@ -13,7 +13,7 @@ export default function App() {
   const [gameOver, setGameOver] = useState(false);
   const [mode, setMode] = useState(null);
   const [status, setStatus] = useState("");
-
+  const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
     connect((msg) => {
@@ -32,7 +32,6 @@ export default function App() {
         setPlayer(msg.payload.player);
       }
 
-
       if (msg.type === "GAME_UPDATE") {
         setGame(g => ({ ...g, board: msg.payload.board }));
       }
@@ -42,9 +41,28 @@ export default function App() {
         alert(msg.payload.type || "Game Over");
       }
     });
+
+    setWsConnected(isConnected());
+    const unsubscribe = onConnectionStateChange((state) => {
+      setWsConnected(state === "connected");
+      if (state === "connected") {
+        setStatus("");
+      } else if (state === "connecting") {
+        setStatus("Connecting to server...");
+      } else if (state === "error") {
+        setStatus("Connection error. Retrying...");
+      }
+    });
+
+    return unsubscribe;
   }, []);
 
   function startGame(username, selectedMode) {
+    if (!wsConnected) {
+      setStatus("Waiting for connection...");
+      return;
+    }
+
     setUsername(username);
     setMode(selectedMode);
 
@@ -121,11 +139,16 @@ export default function App() {
               <p className="eyebrow">Start a match</p>
               <h2 className="section-title">Game setup</h2>
             </div>
-            {!mode && <ModeSelector onSelect={setMode} />}
-            {mode && !username && (
+            {!wsConnected && (
+              <div className="status-chip connecting">
+                Connecting to server...
+              </div>
+            )}
+            {!mode && wsConnected && <ModeSelector onSelect={setMode} />}
+            {mode && !username && wsConnected && (
               <UsernameForm onSubmit={(u) => startGame(u, mode)} />
             )}
-            {status && <div className="status-chip">{status}</div>}
+            {status && wsConnected && <div className="status-chip">{status}</div>}
           </div>
 
           <Leaderboard />
